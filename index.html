@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hit refresh: Double Jeopardy</title>
+<style>
+:root{
+  --black:#141414; --bar:#1d1d1d; --addr:#3b3b3b; --mid:#555; --line:#9a9a9a; --pale:#ececec; --pale2:#f5f5f5;
+  --or:#F5A20F; --or-tint:#FFF0D2; --or-deep:#8A5300; --red:#9b2c2c; --red-tint:#F7E7E7;
+  --disp:"Century Gothic","CenturyGothic","URW Gothic","URW Gothic L","AppleGothic","Avant Garde","Futura","Trebuchet MS",sans-serif;
+  --body:Calibri,Carlito,"Segoe UI",Candara,"Helvetica Neue",Arial,sans-serif;
+  --mono:Consolas,"Lucida Console","DejaVu Sans Mono","Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{font-size:22px;height:100%}
+body{margin:0;height:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden;font-family:var(--body);color:var(--black);background:#fff;line-height:1.3;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:4px solid var(--or);outline-offset:2px;box-shadow:0 0 0 7px var(--black)}
+.disp{font-family:var(--disp);font-weight:700}
+
+.top{position:relative;z-index:60;background:var(--bar);color:#fff;display:flex;align-items:center;gap:.3rem;padding:.25rem .4rem;flex:none}
+.dots{display:flex;gap:.2rem;flex:none}
+.dots i{display:block;width:.4rem;height:.4rem;border-radius:50%;background:#9a9a9a}
+.dots i:first-child{background:var(--or)}
+.addr{flex:1;min-width:0;background:var(--addr);border-radius:999px;padding:.2rem .7rem;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb{background:#fff;color:#111;border:0;border-radius:4px;font-weight:700;font-size:.8rem;min-height:44px;min-width:44px;padding:0 .5rem;flex:none}
+.load{flex:none;background:#fff;border-bottom:3px solid var(--black);display:flex;align-items:center;gap:.5rem;padding:.2rem .5rem;font-size:.75rem;font-weight:700}
+.load .lb{flex:1;height:.6rem;border:2px solid var(--black);background:#fff;position:relative}
+.load .lb i{position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(45deg,#F5A20F 0 10px,#141414 10px 20px);transition:width .5s}
+
+main{flex:1;overflow:auto;padding:.5rem .6rem 1rem;-webkit-overflow-scrolling:touch}
+.wrap{max-width:1500px;margin:0 auto}
+.muted{color:var(--mid)}
+.center{text-align:center}
+.row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.bb{border:3px solid var(--black);background:#fff;font-weight:700;min-height:2.1em;padding:.15em .8em;border-radius:4px}
+.bb.go{background:var(--or)}
+.bb.solid{background:var(--black);color:#fff}
+.bb.sm{min-height:44px;font-size:.85em;padding:0 .6em}
+.chip{border:3px solid var(--black);background:#fff;border-radius:999px;min-height:44px;padding:0 .9em;font-weight:700}
+.chip.on{background:var(--black);color:var(--or)}
+.sbar{display:flex;align-items:stretch;margin:.3em 0 .6em}
+.sbar .blk{background:var(--or);font-family:var(--disp);font-weight:700;min-width:2em;display:flex;align-items:center;justify-content:center;font-size:1.1em;padding:0 .3em}
+.sbar .ttl{flex:1;background:var(--or-tint);border:3px solid var(--black);border-left:0;padding:.3em .7em;font-family:var(--disp);font-weight:700}
+.card{border:3px solid var(--black);border-bottom:8px solid var(--or);background:#fff;padding:.7em .9em;margin:.6em 0}
+.hero{border:3px solid var(--black);border-bottom:10px solid var(--or);margin:.3em 0 .7em}
+.hero .hbar{background:var(--bar);color:#fff;padding:.25em .6em;font-size:.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero .panel{background:var(--or-tint);border-left:12px solid var(--or);margin:.6em;padding:.6em .9em}
+.eyebrow{font-family:var(--disp);font-weight:700;font-size:.8em}
+.big{font-family:var(--disp);font-weight:700;font-size:2em;line-height:1.1;margin:.15em 0}
+.lbl{font-family:var(--disp);font-weight:700;margin:.6em 0 .3em}
+.trow{display:flex;flex-wrap:wrap;gap:.4em;align-items:center;margin:.3em 0}
+.tin{font:inherit;border:3px solid var(--black);border-radius:4px;min-height:44px;padding:.1em .5em;flex:1 1 10em;min-width:0}
+.tnum{background:var(--black);color:var(--or);font-weight:700;min-width:2em;min-height:44px;display:flex;align-items:center;justify-content:center}
+
+/* board */
+.boardwrap{overflow-x:auto}
+.board{display:grid;grid-template-columns:repeat(5,minmax(7.5em,1fr));gap:.35em;min-width:38em}
+.cat{color:#fff;font-family:var(--disp);font-weight:700;text-align:center;padding:.45em .3em;display:flex;align-items:center;justify-content:center;min-height:2.8em;border:3px solid var(--black);line-height:1.15}
+.tile{border:3px solid var(--black);border-bottom-width:8px;background:#fff;font-family:var(--disp);font-weight:700;font-size:1.5em;min-height:1.75em;border-radius:4px}
+.tile:hover{background:var(--or-tint)}
+.tile.used{background:repeating-linear-gradient(45deg,#f1f1f1 0 8px,#dedede 8px 16px);color:#9a9a9a;font-size:1.1em}
+.turn{margin:.4em 0 .2em;font-family:var(--disp);font-weight:700;display:flex;flex-wrap:wrap;gap:.5em;align-items:center}
+.turn .who{background:var(--black);color:var(--or);padding:.1em .7em;border-radius:999px}
+.scores{display:flex;flex-wrap:wrap;gap:.5em;margin-top:.3em}
+.sc{flex:1 1 14em;border:3px solid var(--black);border-bottom:6px solid var(--black);background:#fff;padding:.2em .5em;display:flex;flex-wrap:wrap;align-items:center;gap:.4em}
+.sc .nm{flex:1 1 5em;min-width:0}
+.sc.on{border-bottom-color:var(--or);background:var(--or-tint)}
+.sc .nm{font-family:var(--disp);font-weight:700;overflow-wrap:anywhere}
+.sc .pts{font-family:var(--mono);font-weight:700;font-size:1.5em}
+.sc .row .bb{flex:none}
+.step{display:inline-flex;flex-wrap:wrap;gap:.3em;align-items:center;margin-left:auto;font-weight:400;font-family:var(--body)}
+
+/* clue */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:.6rem}
+.clue{background:#fff;border:3px solid var(--black);border-bottom:12px solid var(--cc,#F5A20F);width:100%;max-width:1100px;padding:.7em .9em}
+.chd{display:flex;flex-wrap:wrap;gap:.5em;align-items:center}
+.ctag{color:#fff;background:var(--cc,#F5A20F);font-family:var(--disp);font-weight:700;padding:.15em .7em;border:2px solid var(--black)}
+.cval{font-family:var(--mono);font-weight:700;font-size:1.3em}
+.dbl{background:var(--black);color:var(--or);font-family:var(--disp);font-weight:700;padding:.3em .8em;margin:.5em 0;text-align:center;font-size:1.2em;animation:pop .6s}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.08)}100%{transform:scale(1)}}
+.timer{display:flex;flex-wrap:wrap;align-items:center;gap:.4em;margin:.5em 0}
+.tclock{font-family:var(--mono);font-weight:700;font-size:1.6em;min-width:3.2em;text-align:center;border:3px solid var(--black);padding:0 .3em}
+.tclock.red{background:var(--red);color:#fff}
+.tbar{flex:1 1 8em;height:.7em;border:2px solid var(--black)}
+.tbar i{display:block;height:100%;background:var(--or)}
+.tup{font-weight:700;color:var(--red)}
+.qtext{font-family:var(--disp);font-weight:700;font-size:1.45em;line-height:1.2;margin:.5em 0;background:var(--ct,#FFF0D2);border-left:10px solid var(--cc,#F5A20F);padding:.4em .6em;overflow-wrap:anywhere}
+.snip{border:3px solid var(--black);background:var(--pale2);margin:.4em 0}
+.snip .sh{background:#e4e6eb;padding:.2em .6em;font-size:.85em;overflow-wrap:anywhere}
+.snip .sb{padding:.4em .7em;white-space:pre-line;overflow-wrap:anywhere}
+.quote{display:flex;gap:.6em;align-items:flex-start;margin:.4em 0}
+.quote .who{background:var(--black);color:#fff;font-weight:700;padding:.2em .6em;border-radius:6px;flex:none}
+.quote .bub{background:var(--pale2);border:3px solid var(--black);border-radius:14px;padding:.4em .8em;font-size:1.2em;font-weight:700;position:relative;overflow-wrap:anywhere}
+.opt{display:flex;gap:.6em;align-items:center;width:100%;text-align:left;border:3px solid var(--black);background:#fff;min-height:2.4em;padding:.3em .6em;margin:.4em 0;border-radius:4px;font-size:1.15em}
+.opt .ol{flex:none;width:1.7em;height:1.7em;display:inline-flex;align-items:center;justify-content:center;background:var(--ct,#FFF0D2);border:2px solid var(--cc,#F5A20F);font-weight:700;border-radius:4px}
+.opt .tx{min-width:0;overflow-wrap:anywhere}
+.opt .mk{margin-left:auto;font-weight:700;flex:none}
+.opt.right{background:var(--black);color:#fff}
+.opt.right .mk{color:var(--or)}
+.opt.wrong{background:repeating-linear-gradient(45deg,#e8e8e8 0 8px,#cdcdcd 8px 16px)}
+.opt.wrong .tx{text-decoration:line-through}
+.opt.dim{opacity:.45}
+.why{border:3px solid var(--black);background:var(--or-tint);padding:.4em .7em;margin:.4em 0}
+.why b{display:block}
+.award{border-top:3px dashed var(--line);margin-top:.5em;padding-top:.4em}
+.arow{display:flex;flex-wrap:wrap;gap:.4em;align-items:center;margin:.3em 0}
+.arow .nm{flex:1 1 8em;font-weight:700;overflow-wrap:anywhere}
+.arow .bb.gave{background:var(--or)}
+.arow .bb.took{background:var(--red);color:#fff}
+.panel2{background:#fff;border:3px solid var(--black);border-bottom:10px solid var(--or);width:100%;max-width:900px;padding:.7em .9em}
+.notes p{margin:.3em 0}
+.notes h3{font-family:var(--disp);margin:.7em 0 .2em}
+.win{font-family:var(--disp);font-weight:700;font-size:2em;text-align:center;margin:.3em 0}
+.burst{position:fixed;pointer-events:none;font-size:2rem;z-index:90;left:50%;top:40%;transition:transform 1.1s cubic-bezier(.2,.7,.3,1),opacity 1.1s}
+@media (max-width:600px){ html{font-size:18px} .dots{display:none} .qtext{font-size:1.25em} .lbl2{display:none} #bFull{display:none}
+  .board{min-width:0;grid-template-columns:repeat(5,minmax(0,1fr));gap:.2em} .cat{font-size:.62em;padding:.3em .15em;overflow-wrap:anywhere;hyphens:auto} .tile{font-size:1.05em;min-height:2.6em;padding:0} .tile.used{font-size:.8em} }
+@media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="addr" id="addr">&#128274; vu23560 &rsaquo; jeopardy</div>
+  <button class="tb" id="bNotes" aria-label="Notes">&#128221;<span class="lbl2"> Notes</span></button>
+  <button class="tb" id="bTimer" aria-label="Timer">&#9201;&#65039;<span class="lbl2"> Timer</span></button>
+  <button class="tb" id="bSmall" aria-label="Smaller text">A&minus;</button>
+  <button class="tb" id="bBig" aria-label="Bigger text">A+</button>
+  <button class="tb" id="bFull" aria-label="Full screen">&#9974;</button>
+  <button class="tb" id="bHome" aria-label="Start screen">&#9776;</button>
+</div>
+<div class="load" id="load"></div>
+<main id="main"><div class="wrap" id="wrap"></div></main>
+<div id="ovRoot"></div>
+<script>
+(function(){
+"use strict";
+var KEY = "vu23560_l7_hit_refresh_double_jeopardy_v1";
+var GAME = {"title": "Hit refresh: Double Jeopardy", "slug": "lesson-7", "sub": "A team game for Lesson 7. Two rounds. 50 questions from the whole term.", "rounds": [{"cats": [{"name": "Expressions", "col": "#F5A20F", "tint": "#FFF0D2", "ink": "#141414", "talk": true, "qs": [{"q": "What does Jane mean?", "opts": ["Wait a moment. I'm nearly ready.", "Give me a second computer.", "I can't help you today."], "why": "Give me a sec = wait a moment.", "quote": {"who": "Jane", "line": "Give me a sec."}}, {"q": "Alan clicked on Send, but the photo wasn't attached. What does Alan say?", "opts": ["My bad.", "Sweet as.", "Good call."], "why": "My bad = it's my mistake. Sorry."}, {"q": "What does Jane mean?", "opts": ["That's bad luck.", "That's a good idea.", "Please wait."], "why": "Bummer = that's bad luck.", "quote": {"who": "Jane", "line": "Bummer. Your computer crashed?"}}, {"q": "Your friend says, \"We're having a picnic. Do you want to come?\" You want to go. What do you say?", "opts": ["Count me in!", "It is what it is.", "Hang on, you've lost me."], "why": "Count me in = I want to come too."}, {"q": "What does Jane mean?", "opts": ["Tell me the news later.", "Send me a letter in the post.", "Don't tell me anything."], "why": "Keep me posted = tell me what happens.", "quote": {"who": "Jane", "line": "Keep me posted about the picnic!"}}]}, {"name": "Speaking strategies", "col": "#B35400", "tint": "#F7E1CC", "ink": "#fff", "talk": true, "qs": [{"q": "\"So, the second word from the left?\" Which strategy is it?", "opts": ["Say it back to check.", "Spell it to check.", "Say what you did and why."], "why": "You repeat the step as a question."}, {"q": "\"Is that J-I-A-O?\" Which strategy is it?", "opts": ["Spell it to check.", "Ask for a replay.", "Point with words."], "why": "You spell the hard part."}, {"q": "Which sentence points with words clearly?", "opts": ["Click on Visit. It's under the logo.", "Click on that thing there.", "It's somewhere at the top."], "why": "Say what it is and where it is."}, {"q": "You didn't hear the time. What do you say?", "opts": ["Sorry, I didn't catch the time. Could you say it again?", "What?", "Time? I don't know. Never mind."], "why": "Ask for a replay: say what you missed, then ask."}, {"q": "Your screen is frozen. Which is best?", "opts": ["My screen is frozen. I clicked on Print. Can you help me?", "Help! Computer bad!", "Can you help me? Thanks. Bye."], "why": "Say what's wrong, what you did, then a clear question."}]}, {"name": "Browser and inbox", "col": "#0F7D7D", "tint": "#DDF0F0", "ink": "#fff", "talk": false, "qs": [{"q": "It shows a private connection. It is next to the web address. What is it?", "opts": ["the padlock", "the refresh button", "the scroll bar"], "why": "The padlock shows a private connection."}, {"q": "Which one is NOT part of an email?", "opts": ["the scroll bar", "Cc", "Subject"], "why": "To, Cc and Subject are email parts."}, {"q": "You started an email, but you didn't send it. Where is it?", "opts": ["Drafts", "Sent Items", "Junk Email"], "why": "Drafts keeps emails you didn't send."}, {"q": "Your teacher's email isn't in your Inbox. Where do you look?", "opts": ["Junk Email", "Deleted Items", "the address bar"], "why": "Some emails go to Junk Email."}, {"q": "The logo and the website name: what is the difference?", "opts": ["The logo is a picture. The website name is the words.", "They are the same thing.", "The logo is the words. The website name is a picture."], "why": "Logo = the picture. Website name = the words."}]}, {"name": "Say it", "col": "#6A4C9C", "tint": "#ECE6F5", "ink": "#fff", "talk": true, "qs": [{"q": "Where is the strong part in computer?", "opts": ["comPUter", "COMputer", "compuTER"], "why": "comPUter: oOo."}, {"q": "printed: which sound is the -ed?", "opts": ["/id/", "/t/", "/d/"], "why": "After t or d, -ed is /id/: print-ed."}, {"q": "How do you say @ in an email address?", "opts": ["at", "and", "about"], "why": "@ = at."}, {"q": "Is the library open on Boxing Day? Does it go up or down at the end?", "opts": ["Up ↗", "Down ↘", "It stays flat."], "why": "A yes / no question goes up."}, {"q": "How do you say julia_m@studentmail.com.au?", "opts": ["julia underscore m, at, student mail, dot com dot a u", "julia dash m, at, student mail, dot com, slash a u", "julia m, at, student mail, com au"], "why": "_ = underscore. Say every dot."}]}, {"name": "Five tenses", "col": "#2F5FA8", "tint": "#E3EBF7", "ink": "#fff", "talk": false, "qs": [{"q": "Look! The page ___ .", "opts": ["is loading", "loads", "loaded"], "why": "Look! = now. Use is + verb-ing."}, {"q": "My computer ___ last night.", "opts": ["crashed", "has crashed", "crashes"], "why": "last night = finished time. Past simple."}, {"q": "The library ___ at 9 am every day.", "opts": ["opens", "is opening", "opened"], "why": "every day = a timetable. Simple present."}, {"q": "___ you ever used a website to learn English?", "opts": ["Have", "Did", "Are"], "why": "ever = present perfect: Have you ever ...?"}, {"q": "Don't worry. I ___ you after class.", "opts": ["will help", "helped", "am helping"], "why": "An offer: I will help you."}]}]}, {"cats": [{"name": "On, at, in", "col": "#2E7D4F", "tint": "#E2F1E7", "ink": "#fff", "talk": false, "qs": [{"q": "The library is closed ___ Friday 25 December.", "opts": ["on", "in", "at"], "why": "on + a day or a date."}, {"q": "The library closes ___ 1 pm on Christmas Eve.", "opts": ["at", "on", "in"], "why": "at + a clock time."}, {"q": "The Log in button is ___ the top right corner.", "opts": ["in", "on", "at"], "why": "in the top right corner."}, {"q": "Type the web address ___ the address bar.", "opts": ["in", "on", "under"], "why": "in the address bar, in the search box."}, {"q": "The links are ___ the left, under See also.", "opts": ["on", "in", "at"], "why": "on the left, on the right."}]}, {"name": "Bug hunt", "col": "#9C2F6B", "tint": "#F5E2EC", "ink": "#fff", "talk": false, "qs": [{"q": "Which sentence is right?", "opts": ["Turn it up.", "Turn up it.", "Turn it on up."], "why": "With it, split the verb: turn it up."}, {"q": "Which sentence is right?", "opts": ["I sent the email last night.", "I have sent the email last night.", "I send the email last night."], "why": "last night = past simple."}, {"q": "Which sentence is right?", "opts": ["I saved it because it wasn't finished.", "I saved it, because it wasn't finished.", "I saved it because, it wasn't finished."], "why": "No comma before because."}, {"q": "Bella types very ___ .", "opts": ["quickly", "quick", "quicker"], "why": "How? Use an adverb: quickly."}, {"q": "The page was slow, ___ I clicked on the refresh button.", "opts": ["so", "but", "or"], "why": "so shows the result."}]}, {"name": "Read the website", "col": "#A3462B", "tint": "#F6E4DE", "ink": "#fff", "talk": false, "qs": [{"q": "When does the library close on 31 December?", "opts": ["2 pm", "4 pm", "1 pm"], "why": "Thursday 31 December: 10 am to 2 pm.", "snip": {"head": "www.ridgestreetlibrary.com.au/visit/holiday-hours", "body": "Tuesday 29 and Wednesday 30 December: 10 am to 4 pm\nThursday 31 December: 10 am to 2 pm"}}, {"q": "How many days is the library closed in December?", "opts": ["four", "two", "one"], "why": "25, 26, 27 and 28 December: four days.", "snip": {"head": "www.ridgestreetlibrary.com.au/visit/holiday-hours", "body": "Friday 25 to Monday 28 December: Closed"}}, {"q": "You want to go at 3 pm on 30 December. Can you?", "opts": ["Yes. It is open until 4 pm.", "No. It closes at 2 pm.", "No. It is closed all day."], "why": "29 and 30 December: 10 am to 4 pm.", "snip": {"head": "www.ridgestreetlibrary.com.au/visit/holiday-hours", "body": "Tuesday 29 and Wednesday 30 December: 10 am to 4 pm"}}, {"q": "The library is closed. What can you do with your books?", "opts": ["Put them in the book drop.", "Leave them at the door.", "Keep them until March."], "why": "The book drop is open every day.", "snip": {"head": "www.ridgestreetlibrary.com.au/visit/holiday-hours", "body": "The book drop is open every day. Return your books there."}}, {"q": "Which word in the menu opens the holiday hours?", "opts": ["Visit", "Borrow", "Kids"], "why": "Move the mouse over Visit. Then click Holiday hours.", "snip": {"head": "www.ridgestreetlibrary.com.au", "body": "Home · Visit · What's on · Borrow · Kids · Contact\nVisit ▾ : Opening hours, Holiday hours, Find us, Parking"}}]}, {"name": "Learn and stay safe", "col": "#1B3A5C", "tint": "#E2E9F1", "ink": "#fff", "talk": false, "qs": [{"q": "The speaker is too fast. What do you click?", "opts": ["Slower", "Print the activity", "Log out"], "why": "Slower plays it at 0.75x."}, {"q": "You missed the last sentence. What do you click?", "opts": ["Back 10 s", "Show the words", "Level C"], "why": "Back 10 s plays it again from 10 seconds before."}, {"q": "A pop-up says you won a free phone. What do you do?", "opts": ["Close it with the X. Don't click on it.", "Click here and get the phone.", "Type your bank details."], "why": "It is not safe. Close it."}, {"q": "An email asks for your password. What do you do?", "opts": ["Don't answer. Delete it.", "Reply with your password.", "Forward it to your friends."], "why": "Never send your password."}, {"q": "You finished on a library computer. What do you do?", "opts": ["Log out, then close the browser.", "Leave it open for the next person.", "Turn off the screen only."], "why": "Always log out on a library computer."}]}, {"name": "Write an email", "col": "#5E5E5E", "tint": "#ECECEC", "ink": "#fff", "talk": false, "qs": [{"q": "Ms Tran replied. The subject starts with RE. Why?", "opts": ["It is a reply.", "It is really important.", "It is a draft."], "why": "RE: = a reply."}, {"q": "Which closing is good in an email to your teacher?", "opts": ["Kind regards,", "lol cya", "hey"], "why": "Friendly and polite is best."}, {"q": "hi Ms Tran, (C) What is the fix?", "opts": ["Hi Ms Tran,", "hi ms tran,", "HI MS TRAN,"], "why": "C = capital letter."}, {"q": "It have a big table. (SV) What is the fix?", "opts": ["It has a big table.", "It having a big table.", "It have big tables."], "why": "SV = subject verb agreement. It has."}, {"q": "Which sentence is for an email to a business?", "opts": ["Could you please fix the light in the laundry?", "Count me in!", "Shoot me an email when you're free."], "why": "Could you please ...? is polite and formal."}]}]}]};
+var NOTES = [{"t": "Expressions", "lines": ["Give me a sec. Hold on, it's loading. No rush. Bummer. My bad. It is what it is. It's an easy fix.", "Gotcha. Sounds like a plan. Good call. Sweet as. You're a legend. Have a good one. Catch you later. Talk soon."]}, {"t": "Six speaking strategies", "lines": ["1 Point with words. 2 Ask for a replay. 3 Say it back to check.", "4 Spell it to check. 5 Say what's wrong, then ask. 6 Say what you did and why."]}, {"t": "Five tenses", "lines": ["Simple present: every day. Present continuous: now. Past simple: yesterday, last night.", "Present perfect: ever, never, just, already, yet. Will: offers and quick decisions."]}, {"t": "On, at, in and screen places", "lines": ["on Friday, on 24 December. at 9 am. in December, in the morning.", "at the top, on the left, in the top right corner, in the address bar, under the logo, next to the search box."]}, {"t": "Write an email", "lines": ["Subject, greeting, your idea or answer, a question, a closing, then your name on the next line.", "No comma before because. RE: = a reply."]}];
+var NAMEPOOL = ["The Refreshers", "Tab Masters", "Click Crew", "The Padlocks", "Scroll Stars", "Web Wizards", "Log In Legends", "Search Squad", "Inbox Heroes", "Send Button Gang", "The Cursors", "Address Aces"];
+var TIMES = [0, 15, 20, 30, 45, 60, 90, 120];
+var SIZES = [16, 19, 22, 26, 30];
+var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function h(t, a, c){
+  var e = document.createElement(t), k;
+  if(a){ for(k in a){ if(!a.hasOwnProperty(k) || a[k] == null) continue;
+    if(k === "cls") e.className = a[k]; else if(k.indexOf("on") === 0) e.addEventListener(k.slice(2), a[k]); else e.setAttribute(k, a[k]); } }
+  if(c != null){ if(!(c instanceof Array)) c = [c];
+    for(var i = 0; i < c.length; i++){ var x = c[i]; if(x == null || x === false) continue;
+      e.appendChild(typeof x === "string" || typeof x === "number" ? document.createTextNode(String(x)) : x); } }
+  return e;
+}
+function shuffle(a){ a = a.slice(); for(var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function tlabel(s){ return s === 0 ? "Off" : (s >= 120 ? "2 min" : s + " s"); }
+
+/* ---------- state ---------- */
+var G = fresh();
+function fresh(){ return {v:"setup", nTeams:2, solo:false, names:["", "", "", ""], teams:[], turn:0, round:0, used:{}, dbl:{}, pos:{}, cur:null, pick:null, awarded:{}, soloRight:0, soloDone:0, timer:30, step:100, size:2}; }
+var storeOK = false;
+function load(){ try{ localStorage.setItem("__t", "1"); localStorage.removeItem("__t"); storeOK = true; var r = localStorage.getItem(KEY); if(r){ var o = JSON.parse(r); return o; } }catch(e){} return null; }
+function save(){ if(!storeOK) return; try{ localStorage.setItem(KEY, JSON.stringify(G)); }catch(e){} }
+var SAVED = load();
+if(SAVED && SAVED.size != null){ G.size = SAVED.size; G.timer = SAVED.timer; G.names = SAVED.names || G.names; G.nTeams = SAVED.nTeams || 2; G.solo = !!SAVED.solo; }
+
+function idOf(r, c, i){ return r + "-" + c + "-" + i; }
+function setupPositions(){
+  /* the right answer sits evenly at a, b and c in each round, in a random order */
+  G.pos = {};
+  for(var r = 0; r < 2; r++){
+    var ids = [], spots = [];
+    for(var c = 0; c < 5; c++) for(var i = 0; i < 5; i++) ids.push(idOf(r, c, i));
+    for(var k = 0; k < ids.length; k++) spots.push(k % 3);
+    spots = shuffle(spots);
+    for(k = 0; k < ids.length; k++){
+      var p = spots[k], wrong = shuffle([1, 2]), ord = [];
+      for(var s = 0, w = 0; s < 3; s++) ord.push(s === p ? 0 : wrong[w++]);
+      G.pos[ids[k]] = ord;
+    }
+    G.dbl[r] = idOf(r, Math.floor(Math.random() * 5), 1 + Math.floor(Math.random() * 4));
+  }
+}
+function value(r, i){ return (i + 1) * (r === 0 ? 100 : 200); }
+function usedCount(r){ var n = 0; for(var c = 0; c < 5; c++) for(var i = 0; i < 5; i++) if(G.used[idOf(r, c, i)]) n++; return n; }
+
+/* ---------- top bar ---------- */
+var main = document.getElementById("main"), wrap = document.getElementById("wrap"), ovRoot = document.getElementById("ovRoot");
+function setTop(){
+  document.documentElement.style.fontSize = SIZES[G.size] + "px";
+  var where = G.v === "setup" ? "start" : G.v === "end" ? "final-scores" : (G.round === 0 ? "round-1" : "double-board");
+  document.getElementById("addr").textContent = "\uD83D\uDD12 vu23560 \u203A " + GAME.slug + " \u203A " + where;
+  var ld = document.getElementById("load"); ld.innerHTML = "";
+  if(G.v === "board" || G.v === "roundEnd"){
+    var n = usedCount(G.round);
+    ld.appendChild(h("span", null, (G.round === 0 ? "Round 1" : "Double board") + ": " + n + " of 25 loaded"));
+    ld.appendChild(h("span", {cls:"lb"}, h("i", {style:"width:" + (n / 25 * 100) + "%"})));
+    ld.appendChild(h("span", null, n === 25 ? "\u2705" : "\u23F3"));
+  } else ld.appendChild(h("span", null, GAME.title));
+}
+document.getElementById("bSmall").onclick = function(){ if(G.size > 0){ G.size--; save(); render(); } };
+document.getElementById("bBig").onclick = function(){ if(G.size < SIZES.length - 1){ G.size++; save(); render(); } };
+document.getElementById("bFull").onclick = function(){ try{ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }catch(e){} };
+document.getElementById("bHome").onclick = function(){ stopTimer(); closeOv(); G.v = "setup"; save(); render(); };
+document.getElementById("bNotes").onclick = openNotes;
+document.getElementById("bTimer").onclick = openTimerPanel;
+
+/* ---------- setup ---------- */
+function renderSetup(){
+  var w = wrap;
+  w.appendChild(h("div", {cls:"hero"}, [h("div", {cls:"hbar"}, "\u25CF\u25CF\u25CF  \uD83D\uDD12 vu23560 \u203A " + GAME.slug + " \u203A double-jeopardy"),
+    h("div", {cls:"panel"}, [h("div", {cls:"eyebrow"}, "Access the internet and email \u00B7 EAL Level 2"), h("div", {cls:"big"}, GAME.title), h("div", null, GAME.sub)])]));
+  if(SAVED && (SAVED.v === "board" || SAVED.v === "roundEnd") && SAVED.teams && SAVED.teams.length){
+    w.appendChild(h("div", {cls:"card"}, [h("b", null, "There is a game in progress. "), h("button", {cls:"bb go", onclick:function(){ G = SAVED; SAVED = null; if(G.cur){ if(G.pick != null && !G.solo) G.turn = (G.turn + 1) % G.teams.length; G.cur = null; G.pick = null; } if(G.v === "clue") G.v = "board"; if(G.v === "board" && usedCount(G.round) === 25) G.v = "roundEnd"; save(); render(); }}, "Continue the last game \u25B6")]));
+  }
+  w.appendChild(h("div", {cls:"sbar"}, [h("div", {cls:"blk"}, "1"), h("div", {cls:"ttl"}, "Who is playing?")]));
+  var tr = h("div", {cls:"row"});
+  [1, 2, 3, 4].forEach(function(n){ tr.appendChild(h("button", {cls:"chip" + (!G.solo && G.nTeams === n ? " on" : ""), onclick:function(){ G.solo = false; G.nTeams = n; render(); }}, n === 1 ? "1 team" : n + " teams")); });
+  tr.appendChild(h("button", {cls:"chip" + (G.solo ? " on" : ""), onclick:function(){ G.solo = true; render(); }}, "\uD83D\uDE4B Just me"));
+  w.appendChild(tr);
+  if(!G.solo){
+    w.appendChild(h("div", {cls:"lbl"}, "Team names (type a name, or tap Pick a name)"));
+    for(var i = 0; i < G.nTeams; i++){
+      (function(i){
+        var inp = h("input", {cls:"tin", type:"text", maxlength:"24", placeholder:"Team " + (i + 1), "aria-label":"Name for team " + (i + 1)});
+        inp.value = G.names[i] || "";
+        inp.addEventListener("input", function(){ G.names[i] = inp.value; });
+        w.appendChild(h("div", {cls:"trow"}, [h("span", {cls:"tnum"}, String(i + 1)), inp,
+          h("button", {cls:"bb sm", onclick:function(){ var cur = NAMEPOOL.indexOf(G.names[i]); var nx = NAMEPOOL[(cur + 1 + i * 3) % NAMEPOOL.length];
+            for(var guard = 0; guard < NAMEPOOL.length && G.names.indexOf(nx) > -1 && G.names.indexOf(nx) !== i; guard++) nx = NAMEPOOL[(NAMEPOOL.indexOf(nx) + 1) % NAMEPOOL.length];
+            G.names[i] = nx; inp.value = nx; }}, "\uD83C\uDFB2 Pick a name")]));
+      })(i);
+    }
+  }
+  w.appendChild(h("div", {cls:"sbar", style:"margin-top:1em"}, [h("div", {cls:"blk"}, "2"), h("div", {cls:"ttl"}, "Timer for each question")]));
+  var tm = h("div", {cls:"row"});
+  TIMES.forEach(function(s){ tm.appendChild(h("button", {cls:"chip" + (G.timer === s ? " on" : ""), onclick:function(){ G.timer = s; render(); }}, tlabel(s))); });
+  w.appendChild(tm);
+  w.appendChild(h("div", {cls:"sbar", style:"margin-top:1em"}, [h("div", {cls:"blk"}, "3"), h("div", {cls:"ttl"}, "How to play")]));
+  w.appendChild(h("div", {cls:"card"}, [
+    h("p", null, "Two rounds. Round 1 is 100 to 500 points. The Double board is 200 to 1000 points."),
+    h("p", null, "A team picks a tile. Read the question. Choose a, b or c."),
+    h("p", null, "\u2B50 One tile in each round is hidden double points."),
+    h("p", null, "\uD83D\uDCAC Speaking categories: say your answer in a full sentence first.")]));
+  w.appendChild(h("div", {cls:"row", style:"margin-top:.8em"}, h("button", {cls:"bb go", style:"font-size:1.2em", onclick:startGame}, "Start the game \u25B6")));
+}
+function startGame(){
+  var names = G.names.slice(), n = G.nTeams, solo = G.solo, timer = G.timer, size = G.size;
+  G = fresh(); G.names = names; G.nTeams = n; G.solo = solo; G.timer = timer; G.size = size;
+  if(solo) G.teams = [{name:"Me", score:0}];
+  else for(var i = 0; i < n; i++) G.teams.push({name:(names[i] || "").trim() || ("Team " + (i + 1)), score:0});
+  setupPositions(); G.v = "board"; SAVED = null; save(); render(); main.scrollTop = 0;
+}
+
+/* ---------- board ---------- */
+function renderBoard(){
+  var w = wrap, R = GAME.rounds[G.round];
+  var b = h("div", {cls:"board"});
+  for(var c = 0; c < 5; c++){ var C = R.cats[c]; b.appendChild(h("div", {cls:"cat", style:"background:" + C.col + ";color:" + (C.ink || "#fff")}, (C.talk ? "\uD83D\uDCAC " : "") + C.name)); }
+  for(var i = 0; i < 5; i++) for(c = 0; c < 5; c++){
+    (function(c, i){
+      var id = idOf(G.round, c, i), used = G.used[id], C = R.cats[c];
+      b.appendChild(h("button", {cls:"tile" + (used ? " used" : ""), style:"border-bottom-color:" + C.col, "aria-label":C.name + " for " + value(G.round, i) + (used ? ", done" : ""),
+        onclick:function(){ openClue(c, i); }}, used ? "\u2713 " + value(G.round, i) : String(value(G.round, i))));
+    })(c, i);
+  }
+  w.appendChild(h("div", {cls:"boardwrap"}, b));
+  if(!G.solo){
+    w.appendChild(h("div", {cls:"turn"}, ["Turn: ", h("span", {cls:"who"}, G.teams[G.turn].name), h("button", {cls:"bb sm", onclick:function(){ G.turn = (G.turn + 1) % G.teams.length; save(); render(); }}, "Next team \u25B6"), stepChips()]));
+  } else w.appendChild(h("div", {cls:"turn"}, ["Just me: ", h("span", {cls:"who"}, G.soloRight + " right out of " + G.soloDone)]));
+  w.appendChild(scoreCards());
+  var n = usedCount(G.round);
+  var rowb = h("div", {cls:"row", style:"margin-top:.8em"});
+  if(G.round === 0) rowb.appendChild(h("button", {cls:"bb" + (n === 25 ? " go" : ""), onclick:function(){ if(n === 25 || confirmTwice(this, "Tap again to go to the Double board")){ G.round = 1; G.v = "board"; save(); render(); main.scrollTop = 0; } }}, "Go to the Double board \u25B6"));
+  else rowb.appendChild(h("button", {cls:"bb" + (n === 25 ? " go" : ""), onclick:function(){ if(n === 25 || confirmTwice(this, "Tap again to finish the game")){ G.v = "end"; save(); render(); } }}, "Finish and see the winner \uD83C\uDFC6"));
+  w.appendChild(rowb);
+}
+function scoreCards(){
+  var box = h("div");
+  if(G.solo) return box;
+  if(G.v !== "board") box.appendChild(stepChips());
+  var sc = h("div", {cls:"scores"});
+  G.teams.forEach(function(t, i){
+    sc.appendChild(h("div", {cls:"sc" + (i === G.turn ? " on" : "")}, [h("span", {cls:"nm"}, t.name), h("span", {cls:"pts"}, String(t.score)),
+      h("span", {cls:"row"}, [h("button", {cls:"bb sm", "aria-label":"Take " + G.step + " from " + t.name, onclick:function(){ t.score -= G.step; save(); render(); }}, "\u2212 " + G.step),
+        h("button", {cls:"bb sm", "aria-label":"Give " + G.step + " to " + t.name, onclick:function(){ t.score += G.step; save(); render(); }}, "+ " + G.step)])]));
+  });
+  box.appendChild(sc);
+  return box;
+}
+function stepChips(){
+  var st = h("span", {cls:"step"}, h("span", {cls:"muted"}, "Change points by"));
+  [50, 100, 200, 500].forEach(function(s){ st.appendChild(h("button", {cls:"chip" + (G.step === s ? " on" : ""), onclick:function(){ G.step = s; save(); render(); }}, String(s))); });
+  return st;
+}
+function confirmTwice(btn, msg){
+  if(btn.getAttribute("data-armed") === "1") return true;
+  btn.setAttribute("data-armed", "1"); var old = btn.textContent; btn.textContent = msg;
+  setTimeout(function(){ if(btn.parentNode){ btn.removeAttribute("data-armed"); btn.textContent = old; } }, 3000);
+  return false;
+}
+
+/* ---------- clue ---------- */
+var T = {left:0, total:0, run:false, iv:null, up:false};
+function openClue(c, i){
+  var id = idOf(G.round, c, i);
+  G.cur = {c:c, i:i, id:id}; G.pick = null; G.awarded = {};
+  T.total = G.timer; T.left = G.timer; T.up = false; T.run = G.timer > 0;
+  save(); renderClue();
+  if(G.dbl[G.round] === id) burst(["\u2B50", "\uD83C\uDF1F", "\u2728"]);
+  startTick();
+}
+function curVal(){ var v = value(G.round, G.cur.i); return G.dbl[G.round] === G.cur.id ? v * 2 : v; }
+function closeOv(){ ovRoot.innerHTML = ""; }
+function renderClue(){
+  var R = GAME.rounds[G.round], C = R.cats[G.cur.c], Q = C.qs[G.cur.i], id = G.cur.id, ord = G.pos[id] || [0, 1, 2];
+  var box = h("div", {cls:"clue", style:"--cc:" + C.col + ";--ct:" + C.tint, role:"dialog", "aria-modal":"true"});
+  box.appendChild(h("div", {cls:"chd"}, [h("span", {cls:"ctag"}, (C.talk ? "\uD83D\uDCAC " : "") + C.name), h("span", {cls:"cval"}, String(value(G.round, G.cur.i))),
+    !G.solo ? h("span", {cls:"muted"}, "Turn: " + G.teams[G.turn].name) : null]));
+  if(G.dbl[G.round] === id) box.appendChild(h("div", {cls:"dbl"}, "\u2B50 DOUBLE POINTS! This tile is worth " + curVal() + ". \u2B50"));
+  box.appendChild(timerBox());
+  if(Q.snip) box.appendChild(h("div", {cls:"snip"}, [h("div", {cls:"sh"}, "\uD83D\uDD12 " + Q.snip.head), h("div", {cls:"sb"}, Q.snip.body)]));
+  if(Q.quote) box.appendChild(h("div", {cls:"quote"}, [h("span", {cls:"who"}, Q.quote.who), h("span", {cls:"bub"}, "\u201C" + Q.quote.line + "\u201D")]));
+  if(C.talk && G.pick == null) box.appendChild(h("div", {cls:"muted"}, "\uD83D\uDCAC Say it in a full sentence first. Then choose."));
+  box.appendChild(h("div", {cls:"qtext"}, Q.q));
+  var letters = "abc";
+  for(var k = 0; k < 3; k++){
+    (function(k){
+      var oi = ord[k], cls = "opt", mk = "";
+      if(G.pick != null){ if(oi === 0){ cls += " right"; mk = "\u2713"; } else if(G.pick === oi){ cls += " wrong"; mk = "\u2717"; } else cls += " dim"; }
+      box.appendChild(h("button", {cls:cls, onclick:function(){ if(G.pick != null) return; choose(oi); }}, [h("span", {cls:"ol"}, letters.charAt(k)), h("span", {cls:"tx"}, Q.opts[oi]), mk ? h("span", {cls:"mk"}, mk) : null]));
+    })(k);
+  }
+  if(G.pick == null) box.appendChild(h("div", {cls:"row"}, h("button", {cls:"bb sm", onclick:function(){ choose(-1); }}, "Show the answer")));
+  else {
+    var lead = G.pick === 0 ? "Yes! That's right." : (G.pick === -1 ? "The answer is: " + Q.opts[0] : "Not this time. The answer is: " + Q.opts[0]);
+    box.appendChild(h("div", {cls:"why"}, [h("b", null, lead), Q.why]));
+    box.appendChild(awardPanel());
+  }
+  box.appendChild(h("div", {cls:"row", style:"margin-top:.6em;justify-content:flex-end"}, h("button", {cls:"bb " + (G.pick != null ? "go" : ""), onclick:backToBoard}, G.pick != null ? "Back to the board \u25B6" : "Close without answering")));
+  closeOv();
+  var ov = h("div", {cls:"ov"}, box);
+  ovRoot.appendChild(ov);
+}
+function choose(oi){
+  G.pick = oi;
+  G.used[G.cur.id] = true;
+  if(G.solo && oi !== -1){ G.soloDone++; if(oi === 0){ G.soloRight++; G.teams[0].score += curVal(); } }
+  else if(G.solo && oi === -1) G.soloDone++;
+  if(oi === 0) burst(["\u2705", "\u2B50", "\uD83C\uDF89"]);
+  T.run = false; save(); renderClue();
+}
+function awardPanel(){
+  var p = h("div", {cls:"award"});
+  if(G.solo){ p.appendChild(h("div", {cls:"muted"}, G.pick === 0 ? "+" + curVal() + " points" : "No points this time.")); return p; }
+  var v = curVal();
+  p.appendChild(h("div", {cls:"muted"}, "Teacher: give or take " + v + " points."));
+  G.teams.forEach(function(t, i){
+    var a = G.awarded[i] || 0;
+    p.appendChild(h("div", {cls:"arow"}, [h("span", {cls:"nm"}, t.name + " (" + t.score + ")"),
+      h("button", {cls:"bb sm" + (a > 0 ? " gave" : ""), onclick:function(){ t.score += v; G.awarded[i] = (G.awarded[i] || 0) + 1; save(); renderClue(); }}, "+ " + v),
+      h("button", {cls:"bb sm" + (a < 0 ? " took" : ""), onclick:function(){ t.score -= v; G.awarded[i] = (G.awarded[i] || 0) - 1; save(); renderClue(); }}, "\u2212 " + v)]));
+  });
+  return p;
+}
+function backToBoard(){
+  stopTimer(); closeOv();
+  if(G.pick != null && !G.solo) G.turn = (G.turn + 1) % G.teams.length;
+  G.cur = null; G.pick = null;
+  var n = usedCount(G.round);
+  G.v = n === 25 ? "roundEnd" : "board";
+  save(); render();
+}
+
+/* ---------- timer ---------- */
+var actx = null;
+function beep(){ try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); var o = actx.createOscillator(), g = actx.createGain(); o.type = "sine"; o.frequency.value = 660; g.gain.value = 0.06; o.connect(g); g.connect(actx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.5); o.stop(actx.currentTime + 0.5); }catch(e){} }
+function startTick(){
+  clearInterval(T.iv);
+  T.iv = setInterval(function(){
+    if(!T.run || T.total === 0) return;
+    T.left = Math.max(0, T.left - 1);
+    if(T.left === 0){ T.run = false; T.up = true; beep(); }
+    paintTimer();
+  }, 1000);
+}
+function stopTimer(){ clearInterval(T.iv); T.run = false; }
+function timerBox(){
+  var b = h("div", {cls:"timer", id:"timer"});
+  if(T.total === 0){ b.appendChild(h("span", {cls:"muted"}, "\u23F1\uFE0F Timer is off.")); return b; }
+  b.appendChild(h("span", {cls:"tclock", id:"tclock"}, String(T.left)));
+  b.appendChild(h("span", {cls:"tbar"}, h("i", {id:"tfill", style:"width:" + (T.left / T.total * 100) + "%"})));
+  b.appendChild(h("button", {cls:"bb sm", id:"tpause", onclick:function(){ T.run = !T.run; if(T.left === 0){ T.left = T.total; T.up = false; T.run = true; } paintTimer(); }}, T.run ? "\u23F8 Pause" : "\u25B6 Go"));
+  b.appendChild(h("button", {cls:"bb sm", onclick:function(){ T.left = Math.max(0, T.left - 10); paintTimer(); }}, "\u221210"));
+  b.appendChild(h("button", {cls:"bb sm", onclick:function(){ T.left = T.left + 10; if(T.left > T.total) T.total = T.left; T.up = false; paintTimer(); }}, "+10"));
+  b.appendChild(h("button", {cls:"bb sm", onclick:function(){ T.left = T.total = G.timer || T.total; T.up = false; T.run = true; paintTimer(); }}, "\u21BB Restart"));
+  b.appendChild(h("span", {cls:"tup", id:"tup"}, T.up ? "Time's up!" : ""));
+  return b;
+}
+function paintTimer(){
+  var c = document.getElementById("tclock"); if(!c) return;
+  c.textContent = String(T.left); c.className = "tclock" + (T.left <= 5 ? " red" : "");
+  var f = document.getElementById("tfill"); if(f) f.style.width = (T.total ? T.left / T.total * 100 : 0) + "%";
+  var p = document.getElementById("tpause"); if(p) p.textContent = T.run ? "\u23F8 Pause" : "\u25B6 Go";
+  var u = document.getElementById("tup"); if(u) u.textContent = T.up ? "Time's up! You can still answer." : "";
+}
+function openTimerPanel(){
+  var back = G.cur ? renderClue : null;
+  var p = h("div", {cls:"panel2"}, [h("div", {cls:"sbar"}, [h("div", {cls:"blk"}, "\u23F1"), h("div", {cls:"ttl"}, "Timer for each question")])]);
+  var r = h("div", {cls:"row"});
+  TIMES.forEach(function(s){ r.appendChild(h("button", {cls:"chip" + (G.timer === s ? " on" : ""), onclick:function(){ G.timer = s; save();
+    if(G.cur && G.pick == null){ T.total = s; T.left = s; T.up = false; T.run = s > 0; }
+    if(back) renderClue(); else { closeOv(); render(); } }}, tlabel(s))); });
+  p.appendChild(r);
+  p.appendChild(h("div", {cls:"row", style:"margin-top:.6em;justify-content:flex-end"}, h("button", {cls:"bb", onclick:function(){ if(back) renderClue(); else closeOv(); }}, "Close")));
+  closeOv(); ovRoot.appendChild(h("div", {cls:"ov"}, p));
+}
+function openNotes(){
+  var back = G.cur ? renderClue : null;
+  var p = h("div", {cls:"panel2 notes"}, [h("div", {cls:"sbar"}, [h("div", {cls:"blk"}, "\uD83D\uDCDD"), h("div", {cls:"ttl"}, "Notes: key rules")])]);
+  NOTES.forEach(function(n){ p.appendChild(h("h3", null, n.t)); n.lines.forEach(function(l){ p.appendChild(h("p", null, l)); }); });
+  p.appendChild(h("div", {cls:"row", style:"margin-top:.6em;justify-content:flex-end"}, h("button", {cls:"bb go", onclick:function(){ if(back) renderClue(); else closeOv(); }}, "Close")));
+  closeOv(); ovRoot.appendChild(h("div", {cls:"ov"}, p));
+}
+
+/* ---------- round end / end ---------- */
+function ranking(){ return G.teams.map(function(t, i){ return {t:t, i:i}; }).sort(function(a, b){ return b.t.score - a.t.score; }); }
+function renderRoundEnd(){
+  var w = wrap;
+  w.appendChild(h("div", {cls:"sbar"}, [h("div", {cls:"blk"}, "\u2705"), h("div", {cls:"ttl"}, G.round === 0 ? "Round 1 finished!" : "Double board finished!")]));
+  w.appendChild(G.solo ? h("div", {cls:"card win"}, G.soloRight + " right out of " + G.soloDone) : scoreCards());
+  w.appendChild(h("div", {cls:"row", style:"margin-top:.8em"}, G.round === 0 ?
+    h("button", {cls:"bb go", style:"font-size:1.2em", onclick:function(){ G.round = 1; G.v = "board"; save(); render(); main.scrollTop = 0; }}, "Go to the Double board \u25B6") :
+    h("button", {cls:"bb go", style:"font-size:1.2em", onclick:function(){ G.v = "end"; save(); render(); }}, "See the winner \uD83C\uDFC6")));
+}
+function renderEnd(){
+  var w = wrap;
+  w.appendChild(h("div", {cls:"sbar"}, [h("div", {cls:"blk"}, "\uD83C\uDFC6"), h("div", {cls:"ttl"}, "Final scores")]));
+  if(G.solo){
+    var pct = G.soloDone ? Math.round(G.soloRight / G.soloDone * 100) : 0;
+    w.appendChild(h("div", {cls:"card center"}, [h("div", {cls:"win"}, G.soloRight + " right out of " + G.soloDone), h("div", {cls:"cval"}, G.teams[0].score + " points"),
+      h("p", null, pct >= 80 ? "Excellent work! \uD83C\uDF89" : pct >= 60 ? "Great work! Look at the Notes and try again." : "Good try. Look at the Notes. Then play again.")]));
+  } else {
+    var rk = ranking(), top = rk[0].t.score, winners = rk.filter(function(x){ return x.t.score === top; });
+    w.appendChild(h("div", {cls:"card center"}, h("div", {cls:"win"}, winners.length > 1 ? "\uD83E\uDD1D It's a tie: " + winners.map(function(x){ return x.t.name; }).join(" and ") + "!" : "\uD83C\uDFC6 " + winners[0].t.name + " wins!")));
+    rk.forEach(function(x, n){ w.appendChild(h("div", {cls:"sc" + (x.t.score === top ? " on" : ""), style:"margin:.3em 0"}, [h("span", {cls:"nm"}, (n + 1) + ". " + x.t.name), h("div", {cls:"pts"}, String(x.t.score))])); });
+    burst(["\uD83C\uDFC6", "\uD83C\uDF89", "\u2B50"]);
+  }
+  w.appendChild(h("div", {cls:"row", style:"margin-top:.8em"}, [h("button", {cls:"bb go", onclick:function(){ G.v = "setup"; startGame(); }}, "Play again (same teams)"), h("button", {cls:"bb", onclick:function(){ G.v = "setup"; save(); render(); }}, "New game")]));
+}
+
+function burst(list){
+  if(REDUCED) return;
+  for(var i = 0; i < 16; i++){ (function(i){ var s = h("span", {cls:"burst"}, list[i % list.length]); document.body.appendChild(s);
+    var a = Math.random() * Math.PI * 2, d = 120 + Math.random() * 220;
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ s.style.transform = "translate(" + Math.round(Math.cos(a) * d) + "px," + Math.round(Math.sin(a) * d - 50) + "px)"; s.style.opacity = "0"; }); });
+    setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 1300); })(i); }
+}
+
+function render(){
+  setTop(); wrap.innerHTML = "";
+  if(G.v === "setup") renderSetup();
+  else if(G.v === "roundEnd") renderRoundEnd();
+  else if(G.v === "end") renderEnd();
+  else renderBoard();
+}
+document.addEventListener("keydown", function(e){ if(e.key === "Escape" && ovRoot.innerHTML){ if(G.cur && ovRoot.querySelector(".panel2")){ closeOv(); renderClue(); } else if(G.cur) backToBoard(); else closeOv(); } });
+render();
+})();
+</script>
+</body>
+</html>
